@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>S. Anupam Bangle Store</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body{margin:0;font-family:Arial;background:#fff5f7;}
+header{text-align:center;color:white;background:#b71c1c;padding:30px;}
+header img{width:110px;border-radius:50%;background:white;padding:6px;}
+nav{background:#f8bbd0;padding:10px;text-align:center;}
+nav a{margin:0 15px;font-weight:bold;color:#880e4f;text-decoration:none;}
+section{text-align:center;padding:30px;}
+.products{display:grid;grid-template-columns:repeat(4,1fr);gap:15px;}
+.card{background:white;border-radius:10px;padding:8px;box-shadow:0 2px 8px rgba(0,0,0,.1);}
+.card img{width:100%;height:90px;object-fit:contain;border-radius:8px;background:#fff;}
+.btn{background:#c2185b;color:white;padding:6px 12px;border-radius:20px;border:none;cursor:pointer;font-size:13px;}
+footer{background:#880e4f;color:white;text-align:center;padding:15px;}
+.gallery img{width:160px;border-radius:10px;margin:10px;}
+input,select,textarea{padding:6px;margin:5px;}
+table{margin:auto;border-collapse:collapse;}
+th,td{border:1px solid #888;padding:6px;}
+@media(max-width:768px){
+.products{grid-template-columns:repeat(2,1fr);}
+}
+</style>
+</head>
+
+<body>
+
+<header>
+<img src="logo.png">
+<h1>S. Anupam Bangle Store</h1>
+<p>Designer • Bridal • Daily Wear Bangles</p>
+</header>
+
+<nav>
+<a href="#home">Home</a>
+<a href="#products">Bangles</a>
+<a href="#contact">Contact</a>
+</nav>
+
+<section id="home">
+<h2>Our Bangles Collection 💍</h2>
+<p>Firozabad is world famous for glass bangles.</p>
+<div class="gallery">
+<img src="b1.jpg">
+<img src="b2.jpg">
+<img src="b3.jpg">
+</div>
+<p><i>“A woman’s hands are incomplete without bangles.”</i></p>
+</section>
+
+<section id="products">
+<h2>Products</h2>
+<div class="products" id="shopProducts"></div>
+</section>
+
+<section id="contact">
+<h2>Order on WhatsApp</h2>
+<a class="btn" href="https://wa.me/917017471416">Chat Now</a>
+</section>
+
+<!-- ADMIN -->
+<section id="adminPanel" style="display:none;background:white;">
+<h2>Admin Panel</h2>
+
+<h3>Add Product</h3>
+<input id="pname" placeholder="Name">
+<input id="pprice" placeholder="Base Price">
+<select id="pgst">
+<option value="0">No GST</option>
+<option value="3">3%</option>
+<option value="5">5%</option>
+<option value="12">12%</option>
+<option value="18">18%</option>
+</select><br>
+<input type="file" id="pimgfile"><br>
+<textarea id="pdesc" placeholder="Description"></textarea><br>
+<select id="pcat"><option>Bridal</option><option>Designer</option><option>Daily Wear</option></select>
+<input id="pstock" type="number" placeholder="Stock"><br>
+<button class="btn" onclick="addProduct()">Add</button>
+
+<h3>Products</h3>
+<ul id="productList"></ul>
+
+<h3>GST Sales Report</h3>
+<select id="reportType" onchange="generateGSTReport()">
+<option value="monthly">Monthly</option>
+<option value="yearly">Yearly</option>
+</select>
+
+<table id="gstTable">
+<tr><th>Period</th><th>Net</th><th>GST</th><th>Total</th></tr>
+</table>
+
+<button class="btn" onclick="exportGST()">Export GST Report</button>
+</section>
+
+<footer>
+<img src="logo.png" width="50"><br>
+© 2026 S. Anupam Bangle Store
+<span onclick="openAdmin()" style="cursor:pointer;">⚙️</span>
+</footer>
+
+<script>
+let products=JSON.parse(localStorage.getItem("products"))||[];
+let dailySales=JSON.parse(localStorage.getItem("dailySales"))||{};
+
+function addProduct(){
+let r=new FileReader();
+r.onload=e=>{
+products.push({
+name:pname.value,
+price:+pprice.value,
+gst:+pgst.value,
+desc:pdesc.value,
+cat:pcat.value,
+stock:+pstock.value,
+img:e.target.result
+});
+localStorage.setItem("products",JSON.stringify(products));
+loadProducts();
+};
+r.readAsDataURL(pimgfile.files[0]);
+}
+
+function loadProducts(){
+shopProducts.innerHTML="";
+productList.innerHTML="";
+products.forEach((p,i)=>{
+let gstAmt=p.price*p.gst/100;
+let final=p.price+gstAmt;
+shopProducts.innerHTML+=`
+<div class="card">
+<img src="${p.img}">
+<h3 style="font-size:14px">${p.name}</h3>
+<p style="font-size:12px">₹${final.toFixed(2)}</p>
+<button class="btn" onclick="orderProduct(${i})">Order</button>
+</div>`;
+productList.innerHTML+=`<li>${p.name} - ₹${p.price} + ${p.gst}% GST</li>`;
+});
+}
+
+function orderProduct(i){
+let p=products[i];
+let msg=`I want ${p.name}`;
+window.open(`https://wa.me/917017471416?text=${encodeURIComponent(msg)}`);
+let gstAmt=p.price*p.gst/100;
+let final=p.price+gstAmt;
+let d=new Date().toLocaleDateString();
+dailySales[d]=(dailySales[d]||0)+final;
+localStorage.setItem("dailySales",JSON.stringify(dailySales));
+}
+
+function generateGSTReport(){
+let type=reportType.value;
+let grouped={};
+gstTable.innerHTML=`<tr><th>Period</th><th>Net</th><th>GST</th><th>Total</th></tr>`;
+for(let d in dailySales){
+let date=new Date(d);
+let key=type==="monthly"?date.getFullYear()+"-"+(date.getMonth()+1):date.getFullYear();
+grouped[key]=(grouped[key]||0)+dailySales[d];
+}
+for(let k in grouped){
+let net=grouped[k];
+let gst=net*0.03;
+let total=net+gst;
+let row=gstTable.insertRow();
+row.innerHTML=`<td>${k}</td><td>${net.toFixed(2)}</td><td>${gst.toFixed(2)}</td><td>${total.toFixed(2)}</td>`;
+}
+}
+
+function exportGST(){
+let csv="Period,Net,GST,Total\n";
+let rows=document.querySelectorAll("#gstTable tr");
+rows.forEach((r,i)=>{
+if(i===0)return;
+let c=r.children;
+csv+=`${c[0].innerText},${c[1].innerText},${c[2].innerText},${c[3].innerText}\n`;
+});
+let a=document.createElement("a");
+a.href=URL.createObjectURL(new Blob([csv]));
+a.download="GST_Report.csv";
+a.click();
+}
+
+function openAdmin(){
+let p=prompt("Enter Admin Password");
+if(p==="om1234"){
+adminPanel.style.display="block";
+loadProducts();
+generateGSTReport();
+}
+}
+
+loadProducts();
+</script>
+
+</body>
+</html>
